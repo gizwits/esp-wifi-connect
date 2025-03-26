@@ -15,4 +15,5 @@ idf_component_register(
         "esp_wifi"
         "nvs_flash"
         "json"
+        "esp_netif"
 )

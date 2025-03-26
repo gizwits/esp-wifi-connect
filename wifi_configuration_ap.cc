@@ -24,6 +24,9 @@
 extern const char index_html_start[] asm("_binary_wifi_configuration_html_start");
 extern const char done_html_start[] asm("_binary_wifi_configuration_done_html_start");
 
+using WifiConnectSuccessCallback = WifiConfigurationAp::WifiConnectSuccessCallback;
+using WifiConnectFailCallback = WifiConfigurationAp::WifiConnectFailCallback;
+
 WifiConfigurationAp& WifiConfigurationAp::GetInstance() {
     static WifiConfigurationAp instance;
     return instance;
@@ -33,6 +36,8 @@ WifiConfigurationAp::WifiConfigurationAp()
 {
     event_group_ = xEventGroupCreate();
     language_ = "zh-CN";
+    // 初始化回调为空函数
+    success_callback_ = [](const std::string&, const std::string&, const std::string&) {};
 }
 
 WifiConfigurationAp::~WifiConfigurationAp()
@@ -63,8 +68,13 @@ void WifiConfigurationAp::SetSsidPrefix(const std::string &&ssid_prefix)
     ssid_prefix_ = ssid_prefix;
 }
 
-void WifiConfigurationAp::Start()
+void WifiConfigurationAp::Start(
+    WifiConnectSuccessCallback success_cb,
+    WifiConnectFailCallback fail_cb)
 {
+    // 设置回调函数
+    SetConnectCallbacks(success_cb, fail_cb);
+    
     // Register event handlers
     ESP_ERROR_CHECK(esp_event_handler_instance_register(WIFI_EVENT,
                                                         ESP_EVENT_ANY_ID,
@@ -100,6 +110,11 @@ void WifiConfigurationAp::Start()
     ESP_ERROR_CHECK(esp_timer_start_periodic(scan_timer_, 10000000));
 }
 
+void WifiConfigurationAp::Start()
+{
+    Start(nullptr, nullptr);
+}
+
 std::string WifiConfigurationAp::GetSsid()
 {
     // Get MAC and use it to generate a unique SSID
@@ -113,7 +128,7 @@ std::string WifiConfigurationAp::GetSsid()
 std::string WifiConfigurationAp::GetWebServerUrl()
 {
     // http://192.168.4.1
-    return "http://192.168.4.1";
+    return "http://192.168.4.2";
 }
 
 void WifiConfigurationAp::StartAccessPoint()
@@ -129,8 +144,8 @@ void WifiConfigurationAp::StartAccessPoint()
 
     // Set the router IP address to 192.168.4.1
     esp_netif_ip_info_t ip_info;
-    IP4_ADDR(&ip_info.ip, 192, 168, 4, 1);
-    IP4_ADDR(&ip_info.gw, 192, 168, 4, 1);
+    IP4_ADDR(&ip_info.ip, 192, 168, 4, 2);
+    IP4_ADDR(&ip_info.gw, 192, 168, 4, 2);
     IP4_ADDR(&ip_info.netmask, 255, 255, 255, 0);
     esp_netif_dhcps_stop(ap_netif_);
     esp_netif_set_ip_info(ap_netif_, &ip_info);
@@ -329,6 +344,7 @@ void WifiConfigurationAp::StartWebServer()
 
             cJSON *ssid_item = cJSON_GetObjectItemCaseSensitive(json, "ssid");
             cJSON *password_item = cJSON_GetObjectItemCaseSensitive(json, "password");
+            cJSON *uid_item = cJSON_GetObjectItemCaseSensitive(json, "uid");
 
             if (!cJSON_IsString(ssid_item) || (ssid_item->valuestring == NULL)) {
                 cJSON_Delete(json);
@@ -341,20 +357,33 @@ void WifiConfigurationAp::StartWebServer()
             if (cJSON_IsString(password_item) && (password_item->valuestring != NULL)) {
                 password_str = password_item->valuestring;
             }
+            
+            // 获取 UID（如果存在）
+            std::string uid_str = "";
+            if (cJSON_IsString(uid_item) && (uid_item->valuestring != NULL)) {
+                uid_str = uid_item->valuestring;
+            }
 
             // 获取当前对象
             auto *this_ = static_cast<WifiConfigurationAp *>(req->user_ctx);
+            // 保存当前 UID
+            this_->current_uid_ = uid_str;
+            
             if (!this_->ConnectToWifi(ssid_str, password_str)) {
+                // 连接失败，调用失败回调
+                this_->fail_callback_(ssid_str, password_str, uid_str);
                 cJSON_Delete(json);
                 httpd_resp_send(req, "{\"success\":false,\"error\":\"无法连接到 WiFi\"}", HTTPD_RESP_USE_STRLEN);
                 return ESP_OK;
             }
-
-            this_->Save(ssid_str, password_str);
+            // 连接成功，保存配置并调用成功回调
+            // this_->Save(ssid_str, password_str);
             cJSON_Delete(json);
             // 设置成功响应
             httpd_resp_set_type(req, "application/json");
             httpd_resp_send(req, "{\"success\":true}", HTTPD_RESP_USE_STRLEN);
+
+            this_->success_callback_(ssid_str, password_str, uid_str);
             return ESP_OK;
         },
         .user_ctx = this
@@ -624,4 +653,14 @@ void WifiConfigurationAp::Stop() {
     }
 
     ESP_LOGI(TAG, "Wifi configuration AP stopped");
+}
+
+// 添加设置回调的方法实现
+void WifiConfigurationAp::SetConnectCallbacks(
+    WifiConnectSuccessCallback success_cb,
+    WifiConnectFailCallback fail_cb
+)
+{
+    success_callback_ = success_cb ? success_cb : [](const std::string&, const std::string&, const std::string&) {};
+    fail_callback_ = fail_cb ? fail_cb : [](const std::string&, const std::string&, const std::string&) {};
 }

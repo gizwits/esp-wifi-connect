@@ -7,73 +7,180 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
     <style type="text/css">
         body {
-            font-family: Arial, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             margin: 0;
-            padding: 0;
-            background-color: #f0f0f0;
+            padding: 20px;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            min-height: 100vh;
         }
+
         h1 {
             text-align: center;
+            color: #2c3e50;
+            font-size: 28px;
+            margin: 30px 0;
         }
+
         form {
-            width: 300px;
+            width: 90%;
+            max-width: 400px;
             margin: 0 auto;
-            padding: 20px;
-            background-color: #fff;
-            border-radius: 5px;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            padding: 25px;
+            background-color: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease;
         }
+
+        form:hover {
+            transform: translateY(-2px);
+        }
+
         label {
             display: block;
-            margin-bottom: 5px;
+            margin-bottom: 8px;
+            color: #34495e;
+            font-weight: 500;
         }
+
         input {
             width: 100%;
-            padding: 5px;
+            padding: 12px;
             box-sizing: border-box;
-            border: 1px solid #ccc;
-            border-radius: 3px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: all 0.3s ease;
         }
+
+        input:focus {
+            border-color: #007bff;
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.2);
+        }
+
         input[type="submit"] {
             background-color: #007bff;
             color: #fff;
             border: none;
-            border-radius: 3px;
-            padding: 10px;
+            border-radius: 8px;
+            padding: 14px;
+            font-size: 16px;
+            font-weight: 600;
             cursor: pointer;
+            transition: all 0.3s ease;
         }
+
         input[type="submit"]:hover {
             background-color: #0056b3;
+            transform: translateY(-1px);
         }
+
         input[type="submit"]:disabled {
             background-color: #ccc;
             cursor: not-allowed;
+            transform: none;
         }
 
         #ap_list {
-            margin-top: 20px;
-            border-top: 1px solid #ccc;
-            padding-top: 10px;
+            margin-top: 25px;
+            border-top: 1px solid #eee;
+            padding-top: 15px;
         }
+
         #ap_list a {
             display: block;
-            margin-top: 5px;
-            color: #007bff;
+            margin: 10px 0;
+            padding: 12px;
+            color: #2c3e50;
             text-decoration: none;
+            background: #f8f9fa;
+            border-radius: 8px;
+            transition: all 0.2s ease;
         }
+
         #ap_list a:hover {
-            text-decoration: underline;
+            background: #e9ecef;
+            transform: translateX(5px);
         }
 
         .language-switch {
             position: absolute;
-            top: 10px;
-            right: 10px;
+            top: 20px;
+            right: 20px;
         }
+
         .language-switch select {
+            padding: 8px 12px;
+            border-radius: 8px;
+            border: 2px solid #e0e0e0;
+            background: white;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .language-switch select:hover {
+            border-color: #007bff;
+        }
+
+        .error {
+            background-color: #fee;
+            color: #e74c3c;
+            padding: 10px;
+            border-radius: 8px;
+            text-align: center;
+            margin: 10px 0;
+            transition: all 0.3s ease;
+            opacity: 0;
+            height: 0;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+        }
+
+        .error.show {
+            opacity: 1;
+            height: auto;
+            margin: 10px 0;
+            padding: 10px;
+        }
+
+        #saved_list_container {
+            margin-bottom: 25px;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.8);
+            border-radius: 10px;
+        }
+
+        #saved_list {
+            list-style: none;
+            padding: 0;
+        }
+
+        #saved_list li {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            margin: 5px 0;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+
+        #saved_list button {
+            border: none;
+            background: none;
+            cursor: pointer;
             padding: 5px;
-            border-radius: 3px;
-            border: 1px solid #ccc;
+            margin-left: 5px;
+            font-size: 16px;
+            transition: transform 0.2s ease;
+        }
+
+        #saved_list button:hover {
+            transform: scale(1.1);
         }
     </style>
 </head>
@@ -97,8 +204,7 @@
         </div>
         <div>
             <h3 data-lang="new_wifi">新的 WiFi</h3>
-            <p class="error" style="color: red; text-align: center;" id="error">
-            </p>
+            <p class="error" id="error"></p>
             <p>
                 <label for="ssid">SSID:</label>
                 <input type="text" id="ssid" name="ssid" required>
@@ -128,6 +234,7 @@
                 new_wifi: '新的 WiFi',
                 password: '密码:',
                 connect: '连接',
+                connecting: '连接中...',
                 select_wifi: '从下面列表选择 2.4G WiFi:'
             },
             'en-US': {
@@ -136,6 +243,7 @@
                 new_wifi: 'New WiFi',
                 password: 'Password:',
                 connect: 'Connect',
+                connecting: 'Connecting...',
                 select_wifi: 'Select an 2.4G WiFi from the list below:'
             }
         };
@@ -164,6 +272,13 @@
             }
             // Save language preference
             localStorage.setItem('preferred_language', lang);
+        }
+
+        // 从 URL 中获取 UID 参数
+        function getUidFromUrl() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const uid = urlParams.get('uid');
+            return uid || '';
         }
 
         function renderSavedList(data) {
@@ -279,17 +394,32 @@
             }
         });
 
+        // 修改显示错误信息的方式
+        function showError(message) {
+            if (message) {
+                error.textContent = message;
+                error.classList.add('show');
+            } else {
+                error.textContent = '';
+                error.classList.remove('show');
+            }
+        }
+
         async function submitForm(event) {
             event.preventDefault();
             button.disabled = true;
-            error.textContent = '';
+            const lang = document.getElementById('language').value;
+            button.value = translations[lang].connecting;
+            showError(''); // 清除之前的错误信息
 
             const ssidValue = ssid.value;
             const passwordValue = document.getElementById('password').value;
+            const uid = getUidFromUrl();
 
             const payload = {
                 ssid: ssidValue,
-                password: passwordValue
+                password: passwordValue,
+                ...(uid ? { uid: uid } : {})
             };
 
             try {
@@ -306,12 +436,11 @@
                     throw new Error(data.error || '连接失败');
                 }
 
-                // 连接成功，跳转到完成页面
-                button.disabled = false;
                 window.location.href = '/done.html';
             } catch (err) {
-                error.textContent = err.message;
+                showError(err.message);
                 button.disabled = false;
+                button.value = translations[lang].connect;
             }
         }
     </script>
