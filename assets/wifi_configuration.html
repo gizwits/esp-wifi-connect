@@ -9,7 +9,7 @@
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             margin: 0;
-            padding: 20px;
+            padding: 10px;
             background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
             min-height: 100vh;
         }
@@ -22,8 +22,8 @@
         }
 
         form {
-            width: 90%;
-            max-width: 400px;
+            width: 100%;
+            max-width: 320px;
             margin: 0 auto;
             padding: 25px;
             background-color: rgba(255, 255, 255, 0.95);
@@ -213,6 +213,10 @@
                 <label for="password" data-lang="password">密码:</label>
                 <input type="password" id="password" name="password">
             </p>
+            <p>
+                <label for="uid" data-lang="uid">UID:</label>
+                <input type="uid" id="uid" name="uid">
+            </p>
             <p style="text-align: center;">
                 <input type="submit" value="连接" id="button" data-lang-value="connect">
             </p>
@@ -233,6 +237,7 @@
                 saved_wifi: '已保存的 WiFi',
                 new_wifi: '新的 WiFi',
                 password: '密码:',
+                uid: '令牌:',
                 connect: '连接',
                 connecting: '连接中...',
                 select_wifi: '从下面列表选择 2.4G WiFi:'
@@ -242,6 +247,7 @@
                 saved_wifi: 'Saved WiFi',
                 new_wifi: 'New WiFi',
                 password: 'Password:',
+                uid: 'Token:',
                 connect: 'Connect',
                 connecting: 'Connecting...',
                 select_wifi: 'Select an 2.4G WiFi from the list below:'
@@ -272,13 +278,6 @@
             }
             // Save language preference
             localStorage.setItem('preferred_language', lang);
-        }
-
-        // 从 URL 中获取 UID 参数
-        function getUidFromUrl() {
-            const urlParams = new URLSearchParams(window.location.search);
-            const uid = urlParams.get('uid');
-            return uid || '';
         }
 
         function renderSavedList(data) {
@@ -414,7 +413,7 @@
 
             const ssidValue = ssid.value;
             const passwordValue = document.getElementById('password').value;
-            const uid = getUidFromUrl();
+            const uid = document.getElementById('uid').value;
 
             const payload = {
                 ssid: ssidValue,

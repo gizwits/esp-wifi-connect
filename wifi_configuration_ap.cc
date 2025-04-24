@@ -128,7 +128,7 @@ std::string WifiConfigurationAp::GetSsid()
 std::string WifiConfigurationAp::GetWebServerUrl()
 {
     // http://192.168.4.1
-    return "http://192.168.4.2";
+    return "http://192.168.4.1";
 }
 
 void WifiConfigurationAp::StartAccessPoint()
@@ -144,8 +144,8 @@ void WifiConfigurationAp::StartAccessPoint()
 
     // Set the router IP address to 192.168.4.1
     esp_netif_ip_info_t ip_info;
-    IP4_ADDR(&ip_info.ip, 192, 168, 4, 2);
-    IP4_ADDR(&ip_info.gw, 192, 168, 4, 2);
+    IP4_ADDR(&ip_info.ip, 192, 168, 4, 1);
+    IP4_ADDR(&ip_info.gw, 192, 168, 4, 1);
     IP4_ADDR(&ip_info.netmask, 255, 255, 255, 0);
     esp_netif_dhcps_stop(ap_netif_);
     esp_netif_set_ip_info(ap_netif_, &ip_info);
@@ -441,7 +441,6 @@ void WifiConfigurationAp::StartWebServer()
         auto *this_ = static_cast<WifiConfigurationAp *>(req->user_ctx);
         std::string url = this_->GetWebServerUrl() + "/?lang=" + this_->language_;
         // Set content type to prevent browser warnings
-        httpd_resp_set_type(req, "text/html");
         httpd_resp_set_status(req, "302 Found");
         httpd_resp_set_hdr(req, "Location", url.c_str());
         httpd_resp_send(req, NULL, 0);
@@ -453,6 +452,7 @@ void WifiConfigurationAp::StartWebServer()
         "/hotspot-detect.html",    // Apple
         "/generate_204",           // Android
         "/mobile/status.php",      // Android
+        "/mtuprobe",           // Android
         "/check_network_status.txt", // Windows
         "/ncsi.txt",              // Windows
         "/fwlink/",               // Microsoft
