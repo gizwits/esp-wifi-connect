@@ -13,8 +13,10 @@ class WifiConfigurationAp {
 public:
     // 定义回调函数类型
     using WifiConnectSuccessCallback = std::function<void(const std::string& ssid, const std::string& password, const std::string& uid)>;
-
     using WifiConnectFailCallback = std::function<void(const std::string& ssid, const std::string& password, const std::string& uid)>;
+    using ApConnectCallback = std::function<void(const uint8_t* mac, uint8_t aid)>;  // MAC地址和AID
+    using ApDisconnectCallback = std::function<void(const uint8_t* mac, uint8_t aid)>;  // MAC地址和AID
+
     static WifiConfigurationAp& GetInstance();
 
     void SetLanguage(const std::string&& language);
@@ -24,6 +26,7 @@ public:
     void Stop();
     void StartSmartConfig();
     std::string GetWebServerUrl();
+    void SetApCallbacks(ApConnectCallback connect_cb, ApDisconnectCallback disconnect_cb);  // 新增方法
 
 private:
     WifiConfigurationAp();
@@ -64,6 +67,8 @@ private:
     // 回调函数
     WifiConnectSuccessCallback success_callback_;
     WifiConnectFailCallback fail_callback_;
+    ApConnectCallback ap_connect_callback_;  // 新增成员变量
+    ApDisconnectCallback ap_disconnect_callback_;  // 新增成员变量
 }; 
 
 #endif // _WIFI_CONFIGURATION_AP_H_

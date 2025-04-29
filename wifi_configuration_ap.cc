@@ -14,7 +14,10 @@
 #include <nvs_flash.h>
 #include <cJSON.h>
 #include <esp_smartconfig.h>
+#include <esp_http_server.h>
+#include <esp_timer.h>
 #include "ssid_manager.h"
+#include "dns_server.h"
 
 #define TAG "WifiConfigurationAp"
 
@@ -26,6 +29,8 @@ extern const char done_html_start[] asm("_binary_wifi_configuration_done_html_st
 
 using WifiConnectSuccessCallback = WifiConfigurationAp::WifiConnectSuccessCallback;
 using WifiConnectFailCallback = WifiConfigurationAp::WifiConnectFailCallback;
+using ApConnectCallback = WifiConfigurationAp::ApConnectCallback;
+using ApDisconnectCallback = WifiConfigurationAp::ApDisconnectCallback;
 
 WifiConfigurationAp& WifiConfigurationAp::GetInstance() {
     static WifiConfigurationAp instance;
@@ -527,15 +532,27 @@ void WifiConfigurationAp::Save(const std::string &ssid, const std::string &passw
     SsidManager::GetInstance().AddSsid(ssid, password);
 }
 
+void WifiConfigurationAp::SetApCallbacks(ApConnectCallback connect_cb, ApDisconnectCallback disconnect_cb)
+{
+    ap_connect_callback_ = connect_cb ? connect_cb : [](const uint8_t*, uint8_t) {};
+    ap_disconnect_callback_ = disconnect_cb ? disconnect_cb : [](const uint8_t*, uint8_t) {};
+}
+
 void WifiConfigurationAp::WifiEventHandler(void* arg, esp_event_base_t event_base, int32_t event_id, void* event_data)
 {
     WifiConfigurationAp* self = static_cast<WifiConfigurationAp*>(arg);
     if (event_id == WIFI_EVENT_AP_STACONNECTED) {
         wifi_event_ap_staconnected_t* event = (wifi_event_ap_staconnected_t*) event_data;
         ESP_LOGI(TAG, "Station " MACSTR " joined, AID=%d", MAC2STR(event->mac), event->aid);
+        if (self->ap_connect_callback_) {
+            self->ap_connect_callback_(event->mac, event->aid);
+        }
     } else if (event_id == WIFI_EVENT_AP_STADISCONNECTED) {
         wifi_event_ap_stadisconnected_t* event = (wifi_event_ap_stadisconnected_t*) event_data;
         ESP_LOGI(TAG, "Station " MACSTR " left, AID=%d", MAC2STR(event->mac), event->aid);
+        if (self->ap_disconnect_callback_) {
+            self->ap_disconnect_callback_(event->mac, event->aid);
+        }
     } else if (event_id == WIFI_EVENT_STA_CONNECTED) {
         xEventGroupSetBits(self->event_group_, WIFI_CONNECTED_BIT);
     } else if (event_id == WIFI_EVENT_STA_DISCONNECTED) {
