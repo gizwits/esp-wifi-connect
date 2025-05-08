@@ -8,6 +8,13 @@
 #include <esp_timer.h>
 #include "dns_server.h"
 #include <esp_netif.h>
+struct WifiConfigData {
+    std::string ssid;
+    std::string password;
+    std::string uid;
+    uint8_t flag;
+    uint16_t cmd;
+};
 
 class WifiConfigurationAp {
 public:
@@ -24,21 +31,27 @@ public:
     void Start();
     void Start(WifiConnectSuccessCallback success_cb, WifiConnectFailCallback fail_cb);
     void Stop();
+    void StartWebServer();
     void StartSmartConfig();
     std::string GetWebServerUrl();
     void SetApCallbacks(ApConnectCallback connect_cb, ApDisconnectCallback disconnect_cb);  // 新增方法
 
 private:
+    void StartUdpServer();
+    void UdpServerTask(void* arg);
+    static void UdpServerTaskWrapper(void* arg);
+    int tcp_server_socket_ = -1;
+    TaskHandle_t tcp_server_task_ = nullptr; 
     WifiConfigurationAp();
     ~WifiConfigurationAp();
 
     // 禁用拷贝构造和赋值操作
+    bool ParseWifiConfig(const uint8_t* data, size_t len, WifiConfigData& config);
     WifiConfigurationAp(const WifiConfigurationAp&) = delete;
     WifiConfigurationAp& operator=(const WifiConfigurationAp&) = delete;
 
     void SetConnectCallbacks(WifiConnectSuccessCallback success_cb, WifiConnectFailCallback fail_cb);
     void StartAccessPoint();
-    void StartWebServer();
     std::string GetSsid();
     bool ConnectToWifi(const std::string& ssid, const std::string& password);
     void Save(const std::string& ssid, const std::string& password);
