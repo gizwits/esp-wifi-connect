@@ -78,6 +78,11 @@ void WifiConfigurationAp::SetSsidPrefix(const std::string &&ssid_prefix)
     ssid_prefix_ = ssid_prefix;
 }
 
+void WifiConfigurationAp::SetRedirectEnabled(bool enabled)
+{
+    redirect_enabled_ = enabled;
+}
+
 void WifiConfigurationAp::Start(
     WifiConnectSuccessCallback success_cb,
     WifiConnectFailCallback fail_cb)
@@ -452,10 +457,18 @@ void WifiConfigurationAp::StartWebServer()
     auto captive_portal_handler = [](httpd_req_t *req) -> esp_err_t {
         auto *this_ = static_cast<WifiConfigurationAp *>(req->user_ctx);
         std::string url = this_->GetWebServerUrl() + "/?lang=" + this_->language_;
-        // Set content type to prevent browser warnings
-        httpd_resp_set_status(req, "302 Found");
-        httpd_resp_set_hdr(req, "Location", url.c_str());
-        httpd_resp_send(req, NULL, 0);
+        
+        if (this_->redirect_enabled_) {
+            // Set content type to prevent browser warnings
+            httpd_resp_set_status(req, "302 Found");
+            httpd_resp_set_hdr(req, "Location", url.c_str());
+            httpd_resp_send(req, NULL, 0);
+        } else {
+            // 如果不启用重定向，直接返回200 OK
+            httpd_resp_set_status(req, "200 OK");
+            httpd_resp_set_type(req, "text/html");
+            httpd_resp_send(req, "Captive portal detected", HTTPD_RESP_USE_STRLEN);
+        }
         return ESP_OK;
     };
 

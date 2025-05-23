@@ -28,6 +28,7 @@ public:
 
     void SetLanguage(const std::string&& language);
     void SetSsidPrefix(const std::string&& ssid_prefix);
+    void SetRedirectEnabled(bool enabled);  // 新增方法
     void Start();
     void Start(WifiConnectSuccessCallback success_cb, WifiConnectFailCallback fail_cb);
     void Stop();
@@ -67,6 +68,7 @@ private:
     std::string ssid_prefix_;
     std::string current_uid_;  // 存储当前连接尝试的 UID
     bool is_connecting_ = false;
+    bool redirect_enabled_ = true;  // 新增成员变量，默认启用重定向
 
     esp_netif_t* ap_netif_ = nullptr;
     httpd_handle_t server_ = nullptr;
